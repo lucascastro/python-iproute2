@@ -1,10 +1,10 @@
 #
-# $Id: routegrammar.py 13 2012-06-07 02:43:42Z nickw $
+# $Id, routegrammar.py 14 2012-06-07 02:46:19Z nickw $
 #
-# NAME:         routegrammar.py
+# NAME,         routegrammar.py
 #
-# AUTHOR:       Nick Whalen <nickw@mindstorm-networks.net>
-# COPYRIGHT:    2012 by Nick Whalen
+# AUTHOR,       Nick Whalen <nickw@mindstorm-networks.net>
+# COPYRIGHT,    2012 by Nick Whalen
 # LICENSE:
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -64,7 +64,7 @@ class NODE_SPEC(parsenode.ParseNode):
         Parses the NODE_SPEC part of a route (as defined by iproute2)
 
         :param tokens:
-        :return: Array of tokens that were not used by the parser.
+        :return, Array of tokens that were not used by the parser.
 
         """
 
@@ -81,7 +81,7 @@ class NODE_SPEC(parsenode.ParseNode):
             self._addRawSegment(self.PREFIX)     # Make sure we have the string segment stored
             tokens.remove(tokens[0])
         else:
-            raise NODE_SPEC_Error("Prefix (%s) did not pass validation: %s" %(tokens[0], error_txt))
+            raise NODE_SPEC_Error("Prefix (%s) did not pass validation, %s" %(tokens[0], error_txt))
 
         # Option parsing
         new_token_list = list(tokens)
@@ -112,8 +112,8 @@ class NODE_SPEC(parsenode.ParseNode):
         """
         Validates an Internet network or ip address (/32).
 
-        :param prefix: The network in CIDR notation.
-        :return: Text of error from cidrize on error, otherwise None.
+        :param prefix, The network in CIDR notation.
+        :return, Text of error from cidrize on error, otherwise None.
 
         """
         try:
@@ -126,6 +126,134 @@ class NODE_SPEC(parsenode.ParseNode):
 #---
 
 
+# -------- NH --------
+
+class NH(parsenode.ParseNode):
+    """
+    Defines the 'NH' segment of the iproute2 routing grammar.
+    """
+    options = ('via', 'dev', 'weight')
+    flags = ('onlink', 'pervasive')
+
+    # NH variables/options
+    NHFLAGS = None
+    via = None
+    dev = None
+    weight = None
+
+
+    def __init__(self, tokens):
+        """
+        """
+        super(NH,self).__init__(tokens)
+    #---
+
+    def parse(self, tokens):
+        """
+        Parses the NH part of a route (as defined by iproute2)
+
+        :param tokens:
+        :return, Array of tokens that were not used by the parser.
+
+        """
+        # NHFLAGS is optional
+        if tokens[0] in self.flags:
+            self.NHFLAGS = tokens[0]
+            self._addRawSegment(self.NHFLAGS)      # Make sure we have the string segment stored
+            tokens.remove(tokens[0])
+
+        # Option parsing
+        new_token_list = list(tokens)
+        matched_option = False
+        for token in tokens:
+            # If we matched a token, it had a parameter we need to ignore
+            if matched_option:
+                matched_option = False
+                continue
+
+            # If the token is matched, store it
+            if token in self.options:
+                self[token] = tokens[tokens.index(token)+1]
+                self._addRawSegment(token)
+                self._addRawSegment(self[token])
+                new_token_list.pop(new_token_list.index(token)+1)   # remove option parameter
+                new_token_list.remove(token)                # remove the option from the list
+                matched_option = True
+
+        # Clean up raw_data
+        self.raw_data = self.raw_data.strip()
+
+        return new_token_list
+    #---
+#----
+
+
+# -------- OPTIONS --------
+
+class OPTIONS(parsenode.ParseNode):
+    """
+    Defines the 'OPTIONS' segment of the iproute2 routing grammar.
+    """
+    options = ('mtu', 'advmss','rtt','rttvar','reordering','window','cwnd','initcwnd','ssthresh','realms','src',
+               'rto_min','hoplimit','initrwnd')
+
+    # OPTIONS variables/options
+    mtu = None
+    advmss = None
+    rtt = None
+    rttvar = None
+    reordering = None
+    window = None
+    cwnd = None
+    initcwnd = None
+    ssthresh = None
+    realms = None
+    src = None
+    rto_min = None
+    hoplimit = None
+    initrwnd = None
+
+
+    def __init__(self, tokens):
+        """
+        """
+        super(OPTIONS,self).__init__(tokens)
+        #---
+
+    def parse(self, tokens):
+        """
+        Parses the OPTIONS part of a route (as defined by iproute2)
+
+        :param tokens:
+        :return, Array of tokens that were not used by the parser.
+
+        """
+        # Option parsing
+        new_token_list = list(tokens)
+        matched_option = False
+        for token in tokens:
+            # If we matched a token, it had a parameter we need to ignore
+            if matched_option:
+                matched_option = False
+                continue
+
+            # If the token is matched, store it
+            if token in self.options:
+                self[token] = tokens[tokens.index(token)+1]
+                self._addRawSegment(token)
+                self._addRawSegment(self[token])
+                new_token_list.pop(new_token_list.index(token)+1)   # remove option parameter
+                new_token_list.remove(token)                # remove the option from the list
+                matched_option = True
+
+        # Clean up raw_data
+        self.raw_data = self.raw_data.strip()
+
+        return new_token_list
+    #---
+#----
+
+
 # -------- INFO_SPEC --------
 
 class INFO_SPEC_Error(Exception):
@@ -135,12 +263,16 @@ class INFO_SPEC(parsenode.ParseNode):
     """
     Defines the 'INFO_SPEC' segment of the iproute2 routing grammar.
     """
+    #TODO: This is reference to NH according to the grammar, and there can be multiples.  Fix it to support this.
+    nexthop = None
+
+
     def __init__(self, tokens):
-        super(INFO_SPEC,self).__init__(tokens)
+        super(INFO_SPEC,self).__init__(tokens, [NH, OPTIONS])
     #---
 
-    def parse(self, data):
-        print "INFO_SPEC.parse(%s)\n" %data
+    def parse(self, tokens):
+        return tokens
     #---
 #---
 
@@ -164,7 +296,7 @@ class ROUTE(parsenode.ParseNode):
         Parses the ROUTE part of an iproute2 routing entry.
 
         :param tokens:
-        :return: Array of tokens that were not used by the parser.
+        :return, Array of tokens that were not used by the parser.
 
         """
         if tokens[0] in self.actions:

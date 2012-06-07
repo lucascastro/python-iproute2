@@ -9,7 +9,7 @@ More description to come as I develop this thing.
 ===============
 Dependencies
 ===============
-:`cidrize <http://pypi.python.org/pypi/cidrize>`_: Parses IPv4/IPv6 addresses, CIDRs, ranges, and wildcard matches & attempts return a valid list of IP addresses
+:`cidrize <http://pypi.python.org/pypi/cidrize/>`_: Parses IPv4/IPv6 addresses, CIDRs, ranges, and wildcard matches & attempts return a valid list of IP addresses
 
 ===============
 License

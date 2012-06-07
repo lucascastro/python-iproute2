@@ -1,5 +1,5 @@
 #
-# $Id: parsenode.py 13 2012-06-07 02:43:42Z nickw $
+# $Id: parsenode.py 14 2012-06-07 02:46:19Z nickw $
 #
 # NAME:         parsenode.py
 #
@@ -38,7 +38,9 @@ class ParseNode(object):
         :param child_class_list: List of child classes to parse token lists
 
         """
-        self.next_data = self.parse(tokens)    # Call the child class' parser
+        # The token list can potentially be empty (not all grammar options are used)
+        if tokens:
+            self.next_data = self.parse(tokens)    # Call the child class' parser
         if child_class_list:
             self.addChildren(child_class_list, self.next_data)
     #---
