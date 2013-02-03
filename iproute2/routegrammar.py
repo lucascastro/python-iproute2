@@ -23,8 +23,10 @@
 #
 
 import sys
-import parsenode
 import cidrize
+
+from iproute2 import parsenode
+
 
 # -------- NODE_SPEC --------
 
